@@ -6,7 +6,7 @@ esphome:
   comment: "IKEA Vindriktning PM2.5 Sensor mit ESP-32-S2 und SDC41 CO2 Sensor"
   project:
     name: "IKEA.Vindriktning"
-    version: "1.1.0"
+    version: "1.1.1"
 
   on_boot:
     priority: -100.0
@@ -43,6 +43,11 @@ wifi:
     password: !secret ap_password
 
 #captive_portal:
+
+dashboard_import:
+  package_import_url: github://tr4nt0r/homeassistant/vindriktning.yaml
+  import_full_config: false
+
 
 web_server:
   port: 80
