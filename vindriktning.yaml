@@ -3,6 +3,7 @@ substitutions:
   devicename: "vindriktning"
 esphome:
   name: vindriktning
+  name_add_mac_suffix: true
   comment: "IKEA Vindriktning PM2.5 Sensor mit ESP-32-S2 und SDC41 CO2 Sensor"
   project:
     name: "IKEA.Vindriktning"
@@ -43,7 +44,8 @@ wifi:
     password: !secret ap_password
 
 #captive_portal:
-
+  #keep_user_credentials: true
+  
 dashboard_import:
   package_import_url: github://tr4nt0r/homeassistant/vindriktning.yaml@main
   import_full_config: true
