@@ -1,0 +1,163 @@
+substitutions:
+  friendly_name: "Vindriktning"
+  devicename: "vindriktning"
+esphome:
+  name: vindriktning
+  comment: "IKEA Vindriktning PM2.5 Sensor mit ESP-32-S2 und SDC41 CO2 Sensor"
+  project:
+    name: "IKEA.Vindriktning"
+    version: "1.1.0"
+
+  on_boot:
+    priority: -100.0
+    then:
+      - wait_until:
+          time.has_time:
+      - sensor.template.publish:
+          id: uptime_sensor
+          state: !lambda return id(homeassistant_time).now().timestamp;
+
+esp32:
+  board: esp32-s2-saola-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret ha_api_key 
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${friendly_name}"
+    password: !secret ap_password
+
+#captive_portal:
+
+web_server:
+  port: 80
+  version: 1
+  ota: false
+  include_internal: false
+  
+i2c:
+  sda: 12
+  scl: 13
+  id: bus_a
+
+uart:
+  rx_pin: 34
+  baud_rate: 9600
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+binary_sensor:
+  - platform: status
+    name: "${friendly_name} Status"
+
+text_sensor:
+  - platform: wifi_info    
+    ip_address:
+      name: "${friendly_name} IP"
+      icon: mdi:ip-network
+      update_interval: 60s
+  - platform: wifi_info    
+    mac_address:
+      name: "${friendly_name} MAC"
+      icon: mdi:network
+      
+sensor:
+# SCD41 CO2 Sensor
+#######################
+  - platform: scd4x
+    id: my_scd41
+    update_interval: 5s
+    automatic_self_calibration: true
+    temperature_offset: 5
+
+    co2:
+      id: vindriktning_carbon_dioxide
+      name: "${friendly_name} CO₂"
+    temperature:
+      id: vindriktning_temperature
+      name: "${friendly_name} Temperature"
+    humidity:
+      id: vindriktning_humidity
+      name: "${friendly_name} Humidity"
+#######################
+
+
+
+# IKEA Vindriktning PM1006 PM2.5 Sensor
+#######################
+  - platform: pm1006
+    pm_2_5:
+      name: "${friendly_name} PM2.5"
+      icon: mdi:molecule
+      filters:
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 10
+#######################
+
+  - platform: template
+    name: "${friendly_name} Uptime"
+    id: uptime_sensor
+    device_class: timestamp
+    icon: mdi:clock
+    entity_category: diagnostic
+    update_interval: never
+
+  - platform: wifi_signal
+    name: "${friendly_name} RSSI"
+    id: rssi
+    update_interval: 60s
+    disabled_by_default: true
+
+button:
+  - platform: restart
+    id: restart_device
+    name: "${friendly_name} Restart"
+
+  - platform: safe_mode
+    name: "${friendly_name} Restart (Safe Mode)"
+    disabled_by_default: true
+    
+  - platform: factory_reset
+    id: reset
+    name: "${friendly_name} Factory Reset"
+    entity_category: diagnostic
+    disabled_by_default: true
+
+# IDC41 CO2 Sensor
+#######################
+  - platform: template
+    name: "${friendly_name} CO₂ Sensor Calibration"
+    id: sdc4x_calibrate
+    entity_category: config
+    disabled_by_default: true
+    on_press:
+      - scd4x.perform_forced_calibration:
+          value: 419   # outside average April 2022
+          id: my_scd41
+
+  - platform: template
+    name: "${friendly_name} CO₂ Sensor Factory Reset"
+    id: sdc4x_factory_reset
+    entity_category: config
+    disabled_by_default: true
+    on_press:
+      - scd4x.factory_reset: my_scd41
+#######################
