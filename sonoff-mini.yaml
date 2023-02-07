@@ -1,0 +1,195 @@
+substitutions:
+  friendly_name: "sonoff-mini"
+esphome:
+  name: sonoff-mini
+  name_add_mac_suffix: true
+  comment: "Sonoff MINI Wi-Fi DIY Smart Switch (decoupled Relay for use with Automations for Smart Bulbs)"
+  project:
+    name: "@tr4nt0r.Sonoff MINI with ESPHome"
+    version: "1.3.0"
+
+  on_boot:
+    priority: -100.0
+    then:
+      - wait_until:
+          time.has_time:
+      - sensor.template.publish:
+          id: uptime_sensor
+          state: !lambda return id(homeassistant_time).now().timestamp;
+
+esp8266:
+  board: esp8285
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret ha_api_key 
+ota:
+  password: !secret ota_password
+  #id: my_ota
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${friendly_name}"
+    password: !secret ap_password
+  #use_address: sonoff-mini.local
+captive_portal:
+    
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+dashboard_import:
+  package_import_url: github://tr4nt0r/homeassistant/sonoff-mini.yaml@main
+  import_full_config: true
+
+
+
+
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    id: reset_button
+    internal: true
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press: 
+      switch.toggle: relay
+    on_double_click :
+      button.press: restart_device
+    on_click:
+      min_length: 10s
+      max_length: 20s
+      then:
+        - button.press: reset
+        
+  - platform: gpio
+    name: "${friendly_name} External Switch Input S2"
+    pin: GPIO04
+    id: light_switch
+    icon: "mdi:light-switch"
+    entity_category: config  #don't need this on the dashboard
+    filters:
+      - delayed_on_off: 10ms
+    on_state:
+      - if:
+          condition:
+            not:
+              - api.connected
+          then:
+            - switch.toggle: relay
+
+
+  - platform: status
+    name: "${friendly_name} Status"
+
+  - platform: gpio
+    pin: GPIO1   # TX pin (for external sensors)
+    id: sensor_tx
+    name: "${friendly_name} GPIO01/TX"
+    disabled_by_default: true
+
+  - platform: gpio
+    pin: GPIO2   # GPIO02 pin (for external sensors)
+    id: sensor_elog
+    name: "${friendly_name} GPIO2"
+    disabled_by_default: true
+
+  - platform: gpio
+    pin: GPIO3   # RX pin (for external sensors)
+    id: sensor_rx
+    name: "${friendly_name} GPIO03/RX"
+    disabled_by_default: true
+
+  - platform: gpio
+    pin: GPIO16   # 
+    id: sensor_ota
+    name: "${friendly_name} GPI16/OTA"
+    disabled_by_default: true
+
+switch:
+  - platform: gpio
+    name: "${friendly_name} Light On/Off"
+    pin: GPIO12
+    id: relay
+    device_class: switch
+    restore_mode: restore_default_on
+
+
+light:
+  - platform: status_led
+    id: blue_status_led
+    name: "${friendly_name} Status LED"
+    pin:
+      number: GPIO13
+      inverted: true
+    entity_category: config 
+
+# Text sensors with general information.
+text_sensor:
+  - platform: wifi_info    
+    ip_address:
+      name: "${friendly_name} IP"
+      icon: mdi:ip-network
+      update_interval: 60s
+  - platform: wifi_info    
+    mac_address:
+      name: "${friendly_name} MAC"
+      icon: mdi:network
+      
+# Sensors with general information.
+sensor:
+  - platform: template
+    name: "${friendly_name} Uptime"
+    id: uptime_sensor
+    device_class: timestamp
+    icon: mdi:clock
+    entity_category: diagnostic
+    update_interval: never
+
+  - platform: wifi_signal
+    name: "${friendly_name} RSSI"
+    id: rssi
+    update_interval: 60s
+    disabled_by_default: true
+
+button:
+  - platform: template
+    name: "${friendly_name} Identify"
+    id: identify
+    entity_category: diagnostic 
+    on_press:
+      - light.turn_on: 
+          id: blue_status_led
+          effect: pulse
+      - delay: 10s
+      - light.turn_off: blue_status_led
+
+
+  - platform: restart
+    id: restart_device
+    name: "${friendly_name} Restart"
+
+
+  - platform: safe_mode
+    name: "${friendly_name} Restart (Safe Mode)"
+
+  - platform: factory_reset
+    id: reset
+    name: "${friendly_name} Factory Reset"
+    entity_category: diagnostic
+    disabled_by_default: true
