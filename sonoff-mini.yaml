@@ -1,12 +1,13 @@
 substitutions:
-  friendly_name: "sonoff-mini"
+  friendly_name: "sonoff-mini-a02ce3"
+
 esphome:
-  name: sonoff-mini
-  name_add_mac_suffix: true
-  comment: "Sonoff MINI Wi-Fi DIY Smart Switch (decoupled Relay for use with Automations for Smart Bulbs)"
+  name: sonoff-mini-a02ce3
+  #name_add_mac_suffix: true
+  comment: "Sonoff MINI Wi-Fi DIY Smart Switch"
   project:
     name: "@tr4nt0r.Sonoff MINI with ESPHome"
-    version: "1.3.0"
+    version: "1.4.1"
 
   on_boot:
     priority: -100.0
@@ -53,7 +54,6 @@ dashboard_import:
 
 
 
-
 binary_sensor:
   - platform: gpio
     pin:
@@ -92,7 +92,17 @@ binary_sensor:
               - api.connected
           then:
             - switch.toggle: relay
-
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 50ms   
+        then:
+          - switch.toggle: relay
+      - timing:
+          - OFF for at most 350ms
+          - ON for at least 50s      
+        then:
+          - switch.toggle: relay
 
   - platform: status
     name: "${friendly_name} Status"
