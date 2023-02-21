@@ -1,13 +1,14 @@
 substitutions:
-  friendly_name: "Vindriktning"
   devicename: "vindriktning"
+  
 esphome:
-  name: vindriktning
+  name: ${devicename}
+  friendly_name: "Vindriktning"
   name_add_mac_suffix: true
   comment: "IKEA Vindriktning PM2.5 Sensor mit ESP-32-S2 und SDC41 CO2 Sensor"
   project:
     name: "IKEA.Vindriktning"
-    version: "1.1.1"
+    version: "1.2.0"
 
   on_boot:
     priority: -100.0
@@ -38,13 +39,13 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
+  use_address: ${devicename}.local
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "${friendly_name}"
+    ssid: "Fallback Hotspot"
     password: !secret ap_password
 
-#captive_portal:
-  #keep_user_credentials: true
+captive_portal:
   
 dashboard_import:
   package_import_url: github://tr4nt0r/homeassistant/vindriktning.yaml@main
@@ -53,8 +54,8 @@ dashboard_import:
 
 web_server:
   port: 80
-  version: 1
-  ota: false
+  version: 2
+  ota: true
   include_internal: false
   
 i2c:
@@ -72,17 +73,17 @@ time:
 
 binary_sensor:
   - platform: status
-    name: "${friendly_name} Status"
+    name: "Status"
 
 text_sensor:
   - platform: wifi_info    
     ip_address:
-      name: "${friendly_name} IP"
+      name: "IP"
       icon: mdi:ip-network
-      update_interval: 60s
+      #update_interval: 60s
   - platform: wifi_info    
     mac_address:
-      name: "${friendly_name} MAC"
+      name: "MAC"
       icon: mdi:network
       
 sensor:
@@ -96,13 +97,13 @@ sensor:
 
     co2:
       id: vindriktning_carbon_dioxide
-      name: "${friendly_name} CO₂"
+      name: "CO₂"
     temperature:
       id: vindriktning_temperature
-      name: "${friendly_name} Temperature"
+      name: "Temperature"
     humidity:
       id: vindriktning_humidity
-      name: "${friendly_name} Humidity"
+      name: "Humidity"
 #######################
 
 
@@ -111,7 +112,7 @@ sensor:
 #######################
   - platform: pm1006
     pm_2_5:
-      name: "${friendly_name} PM2.5"
+      name: "PM2.5"
       icon: mdi:molecule
       filters:
         - sliding_window_moving_average:
@@ -120,7 +121,7 @@ sensor:
 #######################
 
   - platform: template
-    name: "${friendly_name} Uptime"
+    name: "Uptime"
     id: uptime_sensor
     device_class: timestamp
     icon: mdi:clock
@@ -128,7 +129,7 @@ sensor:
     update_interval: never
 
   - platform: wifi_signal
-    name: "${friendly_name} RSSI"
+    name: "RSSI"
     id: rssi
     update_interval: 60s
     disabled_by_default: true
@@ -136,22 +137,22 @@ sensor:
 button:
   - platform: restart
     id: restart_device
-    name: "${friendly_name} Restart"
+    name: "Restart"
 
   - platform: safe_mode
-    name: "${friendly_name} Restart (Safe Mode)"
+    name: "Restart (Safe Mode)"
     disabled_by_default: true
     
   - platform: factory_reset
     id: reset
-    name: "${friendly_name} Factory Reset"
+    name: "Factory Reset"
     entity_category: diagnostic
     disabled_by_default: true
 
 # IDC41 CO2 Sensor
 #######################
   - platform: template
-    name: "${friendly_name} CO₂ Sensor Calibration"
+    name: "CO₂ Sensor Calibration"
     id: sdc4x_calibrate
     entity_category: config
     disabled_by_default: true
@@ -161,7 +162,7 @@ button:
           id: my_scd41
 
   - platform: template
-    name: "${friendly_name} CO₂ Sensor Factory Reset"
+    name: "CO₂ Sensor Factory Reset"
     id: sdc4x_factory_reset
     entity_category: config
     disabled_by_default: true
